@@ -1,29 +1,26 @@
-package backend
+package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 
-	"github.com/promingy/yelp-clone/backend/internal/handlers"
+	"github.com/promingy/yelp-clone/backend/internal/routes"
 
 	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/bunrouter/extra/reqlog"
 )
 
 func main() {
-	router := bunrouter.New(
-		bunrouter.Use(reqlog.NewMiddleware()),
-	)
+	router := bunrouter.New()
 
-	router.GET("/", func(w http.ResponseWriter, req bunrouter.Request) error {
-		// req embeds *http.Request and has all the same fields and methods
+	routes.SetupRoutes(router)
 
-		fmt.Println(req.Method, req.Route(), req.Params().Map())
-		return nil
-	})
+	log.Println("Server running on :8080")
+	http.ListenAndServe(":8080", router)
 
-	router.POST("/users", handlers.CreateUserHandler)
-	router.GET("/users", handlers.ShowUserHandler)
-	router.PUT("/users", handlers.UpdateUserHandler)
-	router.DELETE("/users", handlers.DeleteUserHandler)
+	// example
+	// router.GET("/users/:id", handlers.ShowUserHandler)
+	// can be retrieved with
+	// params := req.Params()
+	// path := params.ByName("<param_name>") for *param
+	// id, err := params.Int64("id")
 }
