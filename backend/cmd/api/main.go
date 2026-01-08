@@ -4,12 +4,19 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/promingy/yelp-clone/backend/internal/db"
 	"github.com/promingy/yelp-clone/backend/internal/routes"
 
 	"github.com/uptrace/bunrouter"
 )
 
 func main() {
+	db, err := db.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
 	router := bunrouter.New()
 
 	routes.SetupRoutes(router)
