@@ -18,6 +18,7 @@ require (
 	github.com/tmthrgd/go-hex v0.0.0-20190904060850-447a3041c3bc // indirect
 	github.com/uptrace/bun v1.2.16 // indirect
 	github.com/uptrace/bun/dialect/pgdialect v1.2.16 // indirect
+	github.com/uptrace/bun/dialect/sqlitedialect v1.2.16 // indirect
 	github.com/uptrace/bun/driver/pgdriver v1.2.16 // indirect
 	github.com/uptrace/bun/driver/sqliteshim v1.2.16 // indirect
 	github.com/uptrace/bunrouter v1.0.23 // indirect
