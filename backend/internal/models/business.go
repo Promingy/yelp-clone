@@ -28,6 +28,6 @@ type Business struct {
 
 	Status      string    `bun:"status,notnull,default:'pending'"`
 	
-	CreatedAt   time.Time `bun:"created_at"`
-	UpdatedAt   time.Time `bun:"updated_at"`
+	CreatedAt   time.Time `bun:"created_at,nullzero,default:current_timestamp"`
+	UpdatedAt   time.Time `bun:"updated_at,nullzero,default:current_timestamp"`
 }

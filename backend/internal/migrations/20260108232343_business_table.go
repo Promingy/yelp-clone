@@ -2,7 +2,6 @@ package migrations
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/uptrace/bun"
 	"github.com/promingy/yelp-clone/backend/internal/models"
@@ -10,11 +9,16 @@ import (
 
 func init() {
 	Migrations.MustRegister(func(ctx context.Context, db *bun.DB) error {
-		fmt.Print(" [up migration] ")
-		_, err := db.NewCreateTable().Model((*models.Business)(nil)).Exec(ctx)
+		_, err := db.NewCreateTable().
+		Model((*models.Business)(nil)).
+		IfNotExists().
+		Exec(ctx)
 		return err
 	}, func(ctx context.Context, db *bun.DB) error {
-		_, err := db.NewCreateTable().Model((*models.Business)(nil)).Exec(ctx)
+		_, err := db.NewDropTable().
+		Model((*models.Business)(nil)).
+		IfExists().
+		Exec(ctx)
 		return err
 	})
 }
