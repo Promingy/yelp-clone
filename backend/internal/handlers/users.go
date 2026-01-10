@@ -50,8 +50,11 @@ func (h *UserHandler) CreateNewUser(w http.ResponseWriter, req bunrouter.Request
 
 	user := &models.User{FirstName: input.FirstName}
 
-	if err := user.Validate(); err != nil {
-		return err
+	if errs := user.Validate(); len(errs) > 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return bunrouter.JSON(w, map[string]map[string]string{
+			"errors": errs,
+		})
 	}
 
 	_, err := h.db.NewInsert().Model(user).Exec(req.Context())
