@@ -27,8 +27,6 @@ func New() (*bun.DB, error) {
 		env = "dev"
 	}
 
-	fmt.Print(env + "\n")
-
 	switch env {
 	case "dev":
 		dsn := os.Getenv("SQLITE_DSN")
@@ -40,8 +38,9 @@ func New() (*bun.DB, error) {
 		if err != nil {
 			return nil, err
 		}
+		db := bun.NewDB(sqldb, sqlitedialect.New())
 
-		return bun.NewDB(sqldb, sqlitedialect.New()), nil
+		return db, nil
 
 	case "prod":
 		dsn := os.Getenv("POSTGRES_DSN")
@@ -50,6 +49,7 @@ func New() (*bun.DB, error) {
 		}
 		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
 		db := bun.NewDB(sqldb, pgdialect.New())
+		
 		return db, nil
 	default:
 		return nil, fmt.Errorf("Unknown APP_ENV: %s", env)

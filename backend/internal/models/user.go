@@ -32,3 +32,14 @@ type User struct {
 	password string
 	cache    map[string]interface{}
 }
+
+func(u *User) Validate() error {
+	if u.FirstName == "" {
+		panic("User must have First Name.")
+	}
+	if u.LastName == "" {
+		panic("User must have Last Name.")
+	}
+	
+	return nil
+}
