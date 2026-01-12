@@ -59,7 +59,7 @@ func (h *UserHandler) CreateNewUser(w http.ResponseWriter, req bunrouter.Request
 
 	_, err := h.db.NewInsert().Model(user).Exec(req.Context())
 	if err != nil {
-		panic(err)
+		return bunrouter.JSON(w, map[string]string{"error": err.Error()})
 	}
 
 	return bunrouter.JSON(w, req.Body)

@@ -10,8 +10,8 @@ type User struct {
 	bun.BaseModel `bun:"table:users,alias:u"`
 
 	// Exported fields become database columns
-	ID           int64  `bun:"id,pk,autoincrement"`
-	FirstName    string `bun:"first_name,notnull"`
+	ID           int64  `bun:"id,pk,autoincrement" json:"id"`
+	FirstName    string `bun:"first_name,notnull" json:"first_name" validate:"required"`
 	LastName     string `bun:"last_name,notnull"`
 	Email        string `bun:"email,unique,notnull"`
 	IsVerified   bool   `bun:"is_verified"`
@@ -20,6 +20,7 @@ type User struct {
 	Bio          string `bun:"bio"`
 	IsAdmin      bool   `bun:"is_admin"`
 	Country      string `bun:"country"`
+	City         string `bun:"city"`
 	State        string `bun:"state"`
 	ZipCode      string `bun:"zip_code"`
 	ProfilePic   string `bun:"profile_pic"`
@@ -31,20 +32,4 @@ type User struct {
 	// Unexported fields are ignorned by bun
 	password string
 	cache    map[string]interface{}
-}
-
-func (u *User) Validate() map[string]string {
-    errs := make(map[string]string)
-
-    if u.FirstName == "" {
-        errs["first_name"] = "First Name is required"
-    }
-    if u.LastName == "" {
-        errs["last_name"] = "Last Name is required"
-    }
-    if u.Email == "" {
-        errs["email"] = "Email is required"
-    }
-
-    return errs
 }
