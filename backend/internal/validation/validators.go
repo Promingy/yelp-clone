@@ -48,6 +48,14 @@ func formatError(err validator.FieldError) string {
 		return fmt.Sprintf("Must be no more than %s characters", err.Param())
 	case "url":
 		return "Must be a valid URL"
+	case "omitempty":
+		return "Invalid value"
+	case "e164":
+		return "Must be a valid phone number (e.g., +15551234567)"
+	case "iso3166_1_alpha2":
+		return "Must be a valid 2-letter country code (e.g., US)"
+	case "len":
+		return fmt.Sprintf("Must be exactly %s characters", err.Param())
 	default:
 		return "Invalid value"
 	}

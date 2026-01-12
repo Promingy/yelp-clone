@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"net/http"
 
-	// "github.com/promingy/yelp-clone/backend/internal/models"
 	"github.com/promingy/yelp-clone/backend/internal/models"
+	v "github.com/promingy/yelp-clone/backend/internal/validation"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 )
 
-// #region
 type UserHandler struct {
 	db        *bun.DB
 	rowLimit  int
@@ -27,30 +26,17 @@ func NewUserHandler(db *bun.DB) *UserHandler {
 
 // #endregion
 
-type UserInput struct {
-	FirstName  string `json:"first_name"`
-	LastName   string `json:"last_name"`
-	Email      string `json:"email"`
-	Password   string `json:"password"`
-	Bio        string `json:"bio"`
-	Country    string `json:"country"`
-	State      string `json:"state"`
-	ZipCode    string `json:"zipcode"`
-	ProfilePic string `json:"profile_pic"`
-}
-
 // / ----------- START POST ROUTE HANDLERS ---------
 func (h *UserHandler) CreateNewUser(w http.ResponseWriter, req bunrouter.Request) error {
-	var input UserInput
+	// var input UserInput
+	user := &models.User{}
 
-	if err := json.NewDecoder(req.Body).Decode(&input); err != nil {
+	if err := json.NewDecoder(req.Body).Decode(&user); err != nil {
 		return err
 	}
 	defer req.Body.Close()
 
-	user := &models.User{FirstName: input.FirstName}
-
-	if errs := user.Validate(); len(errs) > 0 {
+	if errs := v.Validate(user); len(errs) > 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		return bunrouter.JSON(w, map[string]map[string]string{
 			"errors": errs,
