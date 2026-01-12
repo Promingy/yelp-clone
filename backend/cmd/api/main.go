@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/promingy/yelp-clone/backend/internal/db"
+	"github.com/promingy/yelp-clone/backend/internal/handlers"
 	"github.com/promingy/yelp-clone/backend/internal/routes"
 
 	"github.com/uptrace/bunrouter"
@@ -19,7 +20,11 @@ func main() {
 
 	router := bunrouter.New()
 
-	routes.SetupRoutes(router)
+	userHandler := handlers.NewUserHandler(db)
+
+	routes.SetupRoutes(router, routes.Handlers{
+		Users: userHandler,
+	})
 
 	log.Println("Server running on :8080")
 	http.ListenAndServe(":8080", router)
