@@ -5,28 +5,22 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/promingy/yelp-clone/backend/internal/models"
-	v "github.com/promingy/yelp-clone/backend/internal/validation"
-	"github.com/uptrace/bun"
+	"github.com/promingy/yelp-clone/backend/internal/services"
 	"github.com/uptrace/bunrouter"
 )
 
 type UserHandler struct {
-	db        *bun.DB
-	rowLimit  int
-	rateLimit int
+	userService *services.UserService
 }
 
-func NewUserHandler(db *bun.DB) *UserHandler {
-	return &UserHandler{
-		db:       db,
-		rowLimit: 100,
-	}
+func NewUserHandler(userService *services.UserService) *UserHandler {
+	return &UserHandler{userService}
 }
+
 
 // #endregion
 
-type UserInput struct {
+type CreateUserRequest struct {
 	FirstName   string `json:"first_name"`
 	LastName    string `json:"last_name"`
 	Email       string `json:"email"`
@@ -43,49 +37,40 @@ type UserInput struct {
 
 // / ----------- START POST ROUTE HANDLERS ---------
 func (h *UserHandler) CreateNewUser(w http.ResponseWriter, req bunrouter.Request) error {
-	var input UserInput
+	var input CreateUserRequest
 
 	if err := json.NewDecoder(req.Body).Decode(&input); err != nil {
-		return err
+		w.WriteHeader(http.StatusBadRequest)
+		return bunrouter.JSON(w, map[string]string{"error": "Invalid request body"})
 	}
 	defer req.Body.Close()
-
-	user := &models.User{
-		Email:       input.Email,
-		Password:    input.Password,
-	}
-	if errs := v.Validate(user); len(errs) > 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		return bunrouter.JSON(w, map[string]map[string]string{
-			"errors": errs,
-		})
-	}
-	_, err := h.db.NewInsert().Model(user).Exec(req.Context())
-	if err != nil {
-		return bunrouter.JSON(w, map[string]string{"error": err.Error()})
-	}
-
-	profile := &models.Profile{
+	serviceInput := services.CreateUserInput{
 		FirstName:   input.FirstName,
 		LastName:    input.LastName,
+		Email:       input.Email,
+		Password:    input.Password,
+		PhoneNumber: input.PhoneNumber,
 		Bio:         input.Bio,
 		Country:     input.Country,
 		City:        input.City,
-		PhoneNumber: input.PhoneNumber,
 		State:       input.State,
 		ZipCode:     input.ZipCode,
 		ProfilePic:  input.ProfilePic,
 	}
-	if errs := v.Validate(profile); len(errs) > 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		return bunrouter.JSON(w, map[string]map[string]string{"errors": errs,})
-	}
-	_, err = h.db.NewInsert().Model(profile).Exec(req.Context())
+
+	result, err := h.userService.CreateUser(req.Context(), serviceInput)
 	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
 		return bunrouter.JSON(w, map[string]string{"error": err.Error()})
 	}
 
-	return bunrouter.JSON(w, profile)
+	return bunrouter.JSON(w, map[string]interface{}{
+		"user": map[string]interface{}{
+			"id": result.User.ID,
+			"email": result.User.Email,
+		},
+		"profile": result.Profile,
+	})
 }
 
 /// ----------- END POST ROUTE HANDLERS ---------
