@@ -1,6 +1,10 @@
 package models
 
-import "github.com/uptrace/bun"
+import (
+	"context"
+
+	"github.com/uptrace/bun"
+)
 
 type Profile struct {
 	bun.BaseModel `bun:"table:profiles"`
@@ -17,4 +21,10 @@ type Profile struct {
 	State       string `bun:"state" json:"state" validate:"required,min=2,max=50"`
 	ZipCode     string `bun:"zip_code" json:"zip_code" validate:"required,numeric,len=5"`
 	ProfilePic  string `bun:"profile_pic" json:"profile_pic" validate:"omitempty,url"`
+}
+
+var _ bun.BeforeAppendModelHook = (*Profile)(nil)
+
+func(p *Profile) BeforeAppendModel(ctx context.Context, query bun.Query) error {
+	return nil
 }

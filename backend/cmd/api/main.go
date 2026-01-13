@@ -4,9 +4,12 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/promingy/yelp-clone/backend/internal/db"
 	"github.com/promingy/yelp-clone/backend/internal/handlers"
+	"github.com/promingy/yelp-clone/backend/internal/repositories"
 	"github.com/promingy/yelp-clone/backend/internal/routes"
+	"github.com/promingy/yelp-clone/backend/internal/services"
 
 	"github.com/uptrace/bunrouter"
 )
@@ -17,11 +20,20 @@ func main() {
 		log.Fatal(err)
 	}
 	defer db.Close()
+	validator := validator.New(validator.WithRequiredStructEnabled())
 
+	/// Initialize Repositories
+	userRepo := repositories.NewUserRepository(db)
+	profileRepo := repositories.NewProfileRepository(db)
+	
+	/// Initialize Services
+	userService := services.NewUserService(userRepo, profileRepo, validator)
+	
+	/// Initialize Handlers
+	userHandler := handlers.NewUserHandler(userService)
+	
+	/// Setup router
 	router := bunrouter.New()
-
-	userHandler := handlers.NewUserHandler(db)
-
 	routes.SetupRoutes(router, routes.Handlers{
 		Users: userHandler,
 	})

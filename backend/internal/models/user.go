@@ -2,14 +2,10 @@ package models
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"strings"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/uptrace/bun"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
@@ -29,31 +25,15 @@ type User struct {
 	UpdatedAt   time.Time  `bun:"updated_at,notnull,default:current_timestamp"`
 
 	// Unexported fields are ignorned by bun
-	Password string `bun:"-" validate:"required" json:"-"`
+	Password string `bun:"-" json:"-"`
 	cache    map[string]interface{}
 }
 
 var _ bun.BeforeAppendModelHook = (*User)(nil)
 
 func (u *User) BeforeAppendModel(ctx context.Context, query bun.Query) error {
-	err := godotenv.Load()
-	if err != nil {
-		return fmt.Errorf("No .env file found, relying on system env.")
-	}
-	SALT := os.Getenv("PASSWORD_SALT")
-
 	if u.Email != "" {
 		u.Email = strings.ToLower(strings.TrimSpace(u.Email))
 	}
-
-	if u.Password != "" && !strings.HasPrefix(u.Password, "$2a$") {
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password+SALT), bcrypt.DefaultCost)
-		if err != nil {
-			return fmt.Errorf("failed to hash password: %w", err)
-		}
-		u.PasswordHash = string(hashedPassword)
-		u.Password = ""
-	}
-
 	return nil
 }
