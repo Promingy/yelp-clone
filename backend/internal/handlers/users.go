@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	e "github.com/promingy/yelp-clone/backend/internal/errors"
 	"github.com/promingy/yelp-clone/backend/internal/services"
 	"github.com/uptrace/bunrouter"
 )
@@ -44,6 +45,7 @@ func (h *UserHandler) CreateNewUser(w http.ResponseWriter, req bunrouter.Request
 		return bunrouter.JSON(w, map[string]string{"error": "Invalid request body"})
 	}
 	defer req.Body.Close()
+
 	serviceInput := services.CreateUserInput{
 		FirstName:   input.FirstName,
 		LastName:    input.LastName,
@@ -60,6 +62,13 @@ func (h *UserHandler) CreateNewUser(w http.ResponseWriter, req bunrouter.Request
 
 	result, err := h.userService.CreateUser(req.Context(), serviceInput)
 	if err != nil {
+		if validationErr, ok := err.(*e.ValidationError); ok {
+			w.WriteHeader(http.StatusBadRequest)
+			return bunrouter.JSON(w, map[string]map[string]string{
+				"errors": validationErr.Errors,
+			})
+		}
+
 		w.WriteHeader(http.StatusBadRequest)
 		return bunrouter.JSON(w, map[string]string{"error": err.Error()})
 	}
