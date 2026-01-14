@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/joho/godotenv"
+	// "github.com/joho/god÷otenv"
 
 	"github.com/uptrace/bun"
 
@@ -17,11 +17,6 @@ import (
 )
 
 func New() (*bun.DB, error) {
-	err := godotenv.Load()
-	if err != nil {
-		return nil, fmt.Errorf("No .env file found, relying on system env.")
-	}
-
 	env := os.Getenv("APP_ENV")
 	if env == "" {
 		env = "dev"
