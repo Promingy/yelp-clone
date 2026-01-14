@@ -3,29 +3,40 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/promingy/yelp-clone/backend/internal/db"
 	"github.com/promingy/yelp-clone/backend/internal/migrations"
 	"github.com/uptrace/bun/migrate"
 )
 
 func main() {
-    ctx := context.Background()
-    database, err := db.New()
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer database.Close()
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, relying on system environment variables")
+	}
 
-    migrator := migrate.NewMigrator(database, migrations.Migrations)
+	// Set default environment
+	env := os.Getenv("APP_ENV")
+	if env == "" {
+		env = "dev"
+	}
+	ctx := context.Background()
+	database, err := db.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer database.Close()
 
-    if err := migrator.Init(ctx); err != nil {
-        log.Fatal(err)
-    }
+	migrator := migrate.NewMigrator(database, migrations.Migrations)
 
-    if _, err := migrator.Migrate(ctx); err != nil {
-        log.Fatal(err)
-    }
+	if err := migrator.Init(ctx); err != nil {
+		log.Fatal(err)
+	}
 
-    log.Println("Migrations applied successfully")
+	if _, err := migrator.Migrate(ctx); err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("Migrations applied successfully")
 }

@@ -46,17 +46,17 @@ func NewUserService(
 }
 
 type CreateUserInput struct {
-	FirstName   string
-	LastName    string
-	Email       string
-	Password    string
-	PhoneNumber string
-	Bio         string
-	Country     string
-	City        string
-	State       string
-	ZipCode     string
-	ProfilePic  string
+	FirstName   string `json:"first_name"`
+	LastName    string `json:"last_name"`
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+	PhoneNumber string `json:"phone_number"`
+	Bio         string `json:"bio"`
+	Country     string `json:"country"`
+	City        string `json:"city"`
+	State       string `json:"state"`
+	ZipCode     string `json:"zip_code"`
+	ProfilePic  string `json:"profile_pic"`
 }
 
 type CreateUserResult struct {
@@ -65,7 +65,6 @@ type CreateUserResult struct {
 }
 
 func (s *UserService) CreateUser(ctx context.Context, input CreateUserInput) (*CreateUserResult, error) {
-	// Validate Password
 	if errs := v.ValidatePassword(input.Password); len(errs) > 0 {
 		return nil, &e.ValidationError{Errors: errs}
 	}
