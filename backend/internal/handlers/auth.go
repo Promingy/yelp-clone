@@ -60,7 +60,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, req bunrouter.Request) error 
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
-		Path:     "/auth/refresh",
+		Path:     "/api/auth",
 		MaxAge:   7 * 24 * 60 * 60,
 	})
 
@@ -92,14 +92,26 @@ func (h *AuthHandler) Register(w http.ResponseWriter, req bunrouter.Request) err
 	return bunrouter.JSON(w, result)
 }
 
+func (h *AuthHandler) Logout(w http.ResponseWriter, req bunrouter.Request) error {
+	http.SetCookie(w, &http.Cookie{
+		Name:   "access_token",
+		Path:   "/",
+		MaxAge: -1,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:   "refresh_token",
+		Path:   "/api/auth",
+		MaxAge: -1,
+	})
+
+	return bunrouter.JSON(w, map[string]string{"message": "Successfully logged out"})
+}
+
 func (h *AuthHandler) RefreshToken(w http.ResponseWriter, req bunrouter.Request) error {
 	cookie, err := req.Cookie("refresh_token")
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
-		return bunrouter.JSON(w, map[string]map[string]string{"errors": {
-			"error": "No refresh token",
-			"error2": err.Error(),
-		}})
+		return bunrouter.JSON(w, map[string]string{"error": "No refresh token"})
 	}
 
 	result, err := h.authService.RefreshToken(req.Context(), cookie.Value)

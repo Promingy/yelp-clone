@@ -10,6 +10,7 @@ func RegisterAuthRoutes(api *bunrouter.Group, h *handlers.AuthHandler, m *middle
 	api.WithGroup("/auth", func(auth *bunrouter.Group) {
 		auth.POST("/register", h.Register)
 		auth.POST("/login", h.Login)
+		auth.POST("/logout", m.RequireAuth(h.Logout))
 		auth.POST("/refresh", h.RefreshToken)
 
 		auth.GET("/me", m.RequireAuth(h.GetCurrentUser))
