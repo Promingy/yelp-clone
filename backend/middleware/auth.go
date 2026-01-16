@@ -19,19 +19,26 @@ func NewAuthMiddleware (authService *services.AuthService) *AuthMiddleware {
 
 func (m *AuthMiddleware) RequireAuth(next bunrouter.HandlerFunc) bunrouter.HandlerFunc{
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
-		authHeader := req.Header.Get("Authorization")
-		if authHeader == "" {
-			w.WriteHeader(http.StatusUnauthorized)
-			return bunrouter.JSON(w, map[string]string{"error": "Missing authorization header"})
-		}
+		cookie, err := req.Cookie("access_token")
+		var tokenString string
 
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			w.WriteHeader(http.StatusUnauthorized)
-			return bunrouter.JSON(w, map[string]string{"error": "Invalid authorization header format"})
+		if err == nil {
+			tokenString = cookie.Value
+		} else {
+			authHeader := req.Header.Get("Authorization")
+			if authHeader == "" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return bunrouter.JSON(w, map[string]string{"error": "Missing authorization header"})
+			}
+			
+			parts := strings.Split(authHeader, " ")
+			if len(parts) != 2 || parts[0] != "Bearer" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return bunrouter.JSON(w, map[string]string{"error": "Invalid authorization header format"})
+			}
+			
+			tokenString = parts[1]
 		}
-
-		tokenString := parts[1]
 
 		claims, err := m.authService.ValidateAccessToken(tokenString)
 		if err != nil {
@@ -41,7 +48,6 @@ func (m *AuthMiddleware) RequireAuth(next bunrouter.HandlerFunc) bunrouter.Handl
 
 		ctx := context.WithValue(req.Context(), "user_id", claims.UserID)
 		ctx = context.WithValue(ctx, "email", claims.Email)
-
 		req = req.WithContext(ctx)
 
 		return next(w, req)

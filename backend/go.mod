@@ -3,6 +3,7 @@ module github.com/promingy/yelp-clone/backend
 go 1.24.4
 
 require (
+	filippo.io/csrf v0.2.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect

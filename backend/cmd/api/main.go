@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"filippo.io/csrf"
 	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
 	"github.com/promingy/yelp-clone/backend/config"
@@ -19,14 +20,15 @@ import (
 
 func main() {
 	if err := godotenv.Load(); err != nil {
-        log.Println("No .env file found, relying on system environment variables")
-    }
-    
+		log.Println("No .env file found, relying on system environment variables")
+	}
+
 	db, err := db.New()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
+
 	jwtConfig := config.LoadJWTConfig()
 	validator := validator.New(validator.WithRequiredStructEnabled())
 
@@ -52,6 +54,9 @@ func main() {
 		routes.RegisterAuthRoutes(api, authHandler, authMiddleware)
 	})
 
+	protection := csrf.New()
+	handler := protection.Handler(router)
+
 	log.Println("Server running on :8080")
-	http.ListenAndServe(":8080", router)
+	http.ListenAndServe(":8080", handler)
 }
