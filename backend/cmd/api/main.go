@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"filippo.io/csrf"
 	"github.com/go-playground/validator/v10"
@@ -42,6 +43,7 @@ func main() {
 
 	/// Middleware
 	authMiddleware := middleware.NewAuthMiddleware(authService)
+	corsMiddleWare := middleware.CORS()
 
 	/// Initialize Handlers
 	userHandler := handlers.NewUserHandler(userService)
@@ -49,12 +51,25 @@ func main() {
 
 	/// Setup router
 	router := bunrouter.New()
+	router.Use(corsMiddleWare)
+
 	router.WithGroup("/api", func(api *bunrouter.Group) {
 		routes.RegisterUserRoutes(api, userHandler)
 		routes.RegisterAuthRoutes(api, authHandler, authMiddleware)
 	})
 
 	protection := csrf.New()
+
+	if os.Getenv("APP_ENV") == "dev" {
+		protection.AddTrustedOrigin("http://localhost:3000")
+		protection.AddTrustedOrigin("http://localhost:5173")
+		protection.AddTrustedOrigin("http://localhost:5174")
+	} else {
+		if frontendUrl := os.Getenv("FRONTEND_URL"); frontendUrl != "" {
+			protection.AddTrustedOrigin(frontendUrl)
+		}
+	}
+
 	handler := protection.Handler(router)
 
 	log.Println("Server running on :8080")
