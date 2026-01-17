@@ -12,7 +12,6 @@ import (
 	"github.com/promingy/yelp-clone/backend/internal/models"
 	"github.com/promingy/yelp-clone/backend/internal/repositories"
 	"github.com/promingy/yelp-clone/backend/internal/validation"
-	v "github.com/promingy/yelp-clone/backend/internal/validation"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -64,7 +63,7 @@ type CreateUserResult struct {
 }
 
 func (s *UserService) CreateUser(ctx context.Context, input CreateUserInput) (*CreateUserResult, error) {
-	if errs := v.ValidatePassword(input.Password); len(errs) > 0 {
+	if errs := s.validator.ValidatePassword(input.Password); len(errs) > 0 {
 		return nil, &e.ValidationError{Errors: errs}
 	}
 

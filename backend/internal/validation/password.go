@@ -1,6 +1,6 @@
 package validation
 
-func ValidatePassword(p string) map[string]string {
+func (v *Validator) ValidatePassword(p string) map[string]string {
 	errs := make(map[string]string)
 
 	if len(p) < 8 {
