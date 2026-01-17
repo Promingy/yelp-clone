@@ -2,12 +2,14 @@ package validation
 
 func ValidatePassword(p string) map[string]string {
 	errs := make(map[string]string)
+
 	if len(p) < 8 {
-		errs["password"] = "Password must be atleast 8 characters"
+		errs["password"] = "Password must be at least 8 characters"
 		return errs
 	}
 	if len(p) > 72 {
 		errs["password"] = "Password must be at no more than 72 characters"
+		return errs
 	}
 
 	hasUpper := false

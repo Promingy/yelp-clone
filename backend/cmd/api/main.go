@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"filippo.io/csrf"
-	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
 	"github.com/promingy/yelp-clone/backend/config"
 	"github.com/promingy/yelp-clone/backend/internal/db"
@@ -14,6 +13,7 @@ import (
 	"github.com/promingy/yelp-clone/backend/internal/repositories"
 	"github.com/promingy/yelp-clone/backend/internal/routes"
 	"github.com/promingy/yelp-clone/backend/internal/services"
+	"github.com/promingy/yelp-clone/backend/internal/validation"
 	"github.com/promingy/yelp-clone/backend/middleware"
 
 	"github.com/uptrace/bunrouter"
@@ -31,7 +31,7 @@ func main() {
 	defer db.Close()
 
 	jwtConfig := config.LoadJWTConfig()
-	validator := validator.New(validator.WithRequiredStructEnabled())
+	validator := validation.NewValidator()
 
 	/// Initialize Repositories
 	userRepo := repositories.NewUserRepository(db)
