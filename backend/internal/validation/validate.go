@@ -7,11 +7,18 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-var validate = validator.New(validator.WithRequiredStructEnabled())
+type Validator struct {
+	validate *validator.Validate
+}
 
-func Validate(s interface{}) map[string]string {
-	err := validate.Struct(s)
+func NewValidator() *Validator {
+	return &Validator{
+		validate: validator.New(validator.WithRequiredStructEnabled()),
+	}
+}
 
+func (v *Validator) ValidateStruct(s interface{}) map[string]string {
+	err := v.validate.Struct(s)
 	if err == nil {
 		return nil
 	}
@@ -23,6 +30,10 @@ func Validate(s interface{}) map[string]string {
 	}
 
 	return errs
+}
+
+func (v *Validator) RegisterValidation(tag string, fn validator.Func) error {
+	return v.validate.RegisterValidation(tag, fn)
 }
 
 func toSnakeCase(s string) string {

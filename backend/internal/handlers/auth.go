@@ -36,7 +36,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, req bunrouter.Request) error 
 	defer req.Body.Close()
 
 	result, err := h.authService.Login(req.Context(), services.LoginInput{
-		Email: input.Email,
+		Email:    input.Email,
 		Password: input.Password,
 	})
 	if err != nil {
@@ -44,7 +44,27 @@ func (h *AuthHandler) Login(w http.ResponseWriter, req bunrouter.Request) error 
 		return bunrouter.JSON(w, map[string]string{"error": err.Error()})
 	}
 
-	return bunrouter.JSON(w, result)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "access_token",
+		Value:    result.AccessToken,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		Path:     "/",
+		MaxAge:   15 * 60,
+	})
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    result.RefreshToken,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		Path:     "/api/auth",
+		MaxAge:   7 * 24 * 60 * 60,
+	})
+
+	return bunrouter.JSON(w, result.User)
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, req bunrouter.Request) error {
@@ -72,22 +92,54 @@ func (h *AuthHandler) Register(w http.ResponseWriter, req bunrouter.Request) err
 	return bunrouter.JSON(w, result)
 }
 
+func (h *AuthHandler) Logout(w http.ResponseWriter, req bunrouter.Request) error {
+	http.SetCookie(w, &http.Cookie{
+		Name:   "access_token",
+		Path:   "/",
+		MaxAge: -1,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:   "refresh_token",
+		Path:   "/api/auth",
+		MaxAge: -1,
+	})
+
+	return bunrouter.JSON(w, map[string]string{"message": "Successfully logged out"})
+}
+
 func (h *AuthHandler) RefreshToken(w http.ResponseWriter, req bunrouter.Request) error {
-	var input RefreshTokenRequest
-
-	if err := json.NewDecoder(req.Body).Decode(&input); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return bunrouter.JSON(w, map[string]string{"error": "Invalid request body"})
-	}
-	defer req.Body.Close()
-
-	result, err := h.authService.RefreshToken(req.Context(), input.RefreshToken)
+	cookie, err := req.Cookie("refresh_token")
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
-		return bunrouter.JSON(w, map[string]string{"error": err.Error()})
+		return bunrouter.JSON(w, map[string]string{"error": "No refresh token"})
 	}
 
-	return bunrouter.JSON(w, result)
+	result, err := h.authService.RefreshToken(req.Context(), cookie.Value)
+	if err != nil {
+		http.SetCookie(w, &http.Cookie{
+			Name:   "access_token",
+			MaxAge: -1,
+		})
+		http.SetCookie(w, &http.Cookie{
+			Name:   "refresh_token",
+			MaxAge: -1,
+		})
+
+		w.WriteHeader(http.StatusUnauthorized)
+		return bunrouter.JSON(w, map[string]string{"error": "Second Error Was Hit"})
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "access_token",
+		Value:    result.AccessToken,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		Path:     "/",
+		MaxAge:   15 * 60,
+	})
+
+	return bunrouter.JSON(w, result.User)
 }
 
 func (h *AuthHandler) GetCurrentUser(w http.ResponseWriter, req bunrouter.Request) error {
@@ -98,7 +150,7 @@ func (h *AuthHandler) GetCurrentUser(w http.ResponseWriter, req bunrouter.Reques
 		w.WriteHeader(http.StatusNotFound)
 		return bunrouter.JSON(w, map[string]string{"error": "User not found"})
 	}
-	
+
 	profile, err := h.authService.UserRepo.GetProfileByUserId(req.Context(), userID)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
@@ -107,10 +159,10 @@ func (h *AuthHandler) GetCurrentUser(w http.ResponseWriter, req bunrouter.Reques
 
 	return bunrouter.JSON(w, map[string]interface{}{
 		"User": services.UserResponse{
-			ID: user.ID,
-			Email: user.Email,
-			FirstName: profile.FirstName,
-			LastName: profile.LastName,
+			ID:         user.ID,
+			Email:      user.Email,
+			FirstName:  profile.FirstName,
+			LastName:   profile.LastName,
 			ProfilePic: profile.ProfilePic,
 		},
 	})
