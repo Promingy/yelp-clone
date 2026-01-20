@@ -27,15 +27,12 @@ type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-type SingleErrorRes map[string]string
-type MultiErrorRes map[string]map[string]string
-
 func (h *AuthHandler) Login(w http.ResponseWriter, req bunrouter.Request) error {
 	var input LoginRequest
 
 	if err := json.NewDecoder(req.Body).Decode(&input); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		return bunrouter.JSON(w, SingleErrorRes{"error": "Invalid request body"})
+		return bunrouter.JSON(w, e.NewSingleError("Invalid request body"))
 	}
 	defer req.Body.Close()
 
@@ -45,7 +42,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, req bunrouter.Request) error 
 	})
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
-		return bunrouter.JSON(w, SingleErrorRes{"error": err.Error()})
+		return bunrouter.JSON(w, e.NewSingleError(err.Error()))
 	}
 
 	http.SetCookie(w, &http.Cookie{
@@ -76,7 +73,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, req bunrouter.Request) err
 
 	if err := json.NewDecoder(req.Body).Decode(&input); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		return bunrouter.JSON(w, SingleErrorRes{"error": "Invalid request body"})
+		return bunrouter.JSON(w, e.NewSingleError("Invalid request body"))
 	}
 	defer req.Body.Close()
 
@@ -84,16 +81,14 @@ func (h *AuthHandler) Register(w http.ResponseWriter, req bunrouter.Request) err
 	if err != nil {
 		if validationErr, ok := err.(*e.ValidationError); ok {
 			w.WriteHeader(http.StatusBadRequest)
-			return bunrouter.JSON(w, MultiErrorRes{
-				"errors": validationErr.Errors,
-			})
+			return bunrouter.JSON(w, e.NewMultiError(validationErr.Errors))
 		}
 
 		w.WriteHeader(http.StatusBadRequest)
-		return bunrouter.JSON(w, SingleErrorRes{"error": err.Error()})
+		return bunrouter.JSON(w, e.NewSingleError(err.Error()))
 	}
 
-	return bunrouter.JSON(w, result)
+	return bunrouter.JSON(w, result.User)
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, req bunrouter.Request) error {
@@ -117,13 +112,13 @@ func (h *AuthHandler) DeleteCurrentUser(w http.ResponseWriter, req bunrouter.Req
 	userID, ok := utils.GetUserID(req.Context())
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)
-		return bunrouter.JSON(w, SingleErrorRes{"error": "Unauthorized"})
+		return bunrouter.JSON(w, e.NewSingleError("Unauthorized"))
 	}
 
 	err := h.authService.DeleteCurrentUser(req.Context(), userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		return bunrouter.JSON(w, SingleErrorRes{"error": "Failed to delete user"})
+		return bunrouter.JSON(w, e.NewSingleError("Failed to delete user"))
 	}
 
 	return bunrouter.JSON(w, map[string]string {
@@ -135,7 +130,7 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, req bunrouter.Request)
 	cookie, err := req.Cookie("refresh_token")
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
-		return bunrouter.JSON(w, map[string]string{"error": "No refresh token"})
+		return bunrouter.JSON(w, e.NewSingleError("No refresh token"))
 	}
 
 	result, err := h.authService.RefreshToken(req.Context(), cookie.Value)
@@ -150,7 +145,7 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, req bunrouter.Request)
 		})
 
 		w.WriteHeader(http.StatusUnauthorized)
-		return bunrouter.JSON(w, map[string]string{"error": "Second Error Was Hit"})
+		return bunrouter.JSON(w, e.NewSingleError("Unauthorized"))
 	}
 
 	http.SetCookie(w, &http.Cookie{
@@ -170,13 +165,13 @@ func (h *AuthHandler) GetCurrentUser(w http.ResponseWriter, req bunrouter.Reques
 	userID, ok := utils.GetUserID(req.Context())
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)
-		return bunrouter.JSON(w, SingleErrorRes{"error": "Unauthorized"})
+		return bunrouter.JSON(w, e.NewSingleError("Unauthorized"))
 	}
 
 	user, err := h.authService.GetCurrentUser(req.Context(), userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		return bunrouter.JSON(w, SingleErrorRes{"error": err.Error()})
+		return bunrouter.JSON(w, e.NewSingleError(err.Error()))
 	}
 
 	return bunrouter.JSON(w, user)

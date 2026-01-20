@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -50,7 +51,7 @@ type UserResponse struct {
 }
 
 func (s *AuthService) Login(ctx context.Context, input LoginInput) (*AuthResponse, error) {
-	user, err := s.userRepo.FindByEmail(ctx, input.Email)
+	user, err := s.userRepo.FindByEmail(ctx, strings.ToLower(input.Email))
 	if err != nil {
 		return nil, fmt.Errorf("No account associated with email")
 	}
