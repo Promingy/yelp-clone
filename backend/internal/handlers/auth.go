@@ -108,6 +108,10 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, req bunrouter.Request) error
 	return bunrouter.JSON(w, map[string]string{"message": "Successfully logged out"})
 }
 
+func (h *AuthHandler) UpdateUser(w http.ResponseWriter, req bunrouter.Request) error {
+	
+}
+
 func (h *AuthHandler) DeleteCurrentUser(w http.ResponseWriter, req bunrouter.Request) error {
 	userID, ok := utils.GetUserID(req.Context())
 	if !ok {

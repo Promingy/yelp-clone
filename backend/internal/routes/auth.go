@@ -12,6 +12,7 @@ func RegisterAuthRoutes(api *bunrouter.Group, h *handlers.AuthHandler, m *middle
 		auth.POST("/login", h.Login)
 		auth.POST("/refresh", h.RefreshToken)
 		
+		auth.PATCH("/update", m.RequireAuth(h.UpdateUser))
 		auth.DELETE("/logout", m.RequireAuth(h.Logout))
 		auth.DELETE("/delete", m.RequireAuth(h.DeleteCurrentUser))
 		auth.GET("/me", m.RequireAuth(h.GetCurrentUser))

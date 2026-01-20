@@ -43,18 +43,26 @@ func NewUserService(
 	}
 }
 
+type UserFields struct {
+	FirstName   *string `json:"first_name,omitempty"`
+	LastName    *string `json:"last_name,omitempty"`
+	Email       *string `json:"email,omitempty"`
+	Password    *string `json:"password,omitempty"`
+	PhoneNumber *string `json:"phone_number,omitempty"`
+	Bio         *string `json:"bio,omitempty"`
+	Country     *string `json:"country,omitempty"`
+	City        *string `json:"city,omitempty"`
+	State       *string `json:"state,omitempty"`
+	ZipCode     *string `json:"zip_code,omitempty"`
+	ProfilePic  *string `json:"profile_pic,omitempty"`
+}
+
 type CreateUserInput struct {
-	FirstName   string `json:"first_name"`
-	LastName    string `json:"last_name"`
-	Email       string `json:"email"`
-	Password    string `json:"password"`
-	PhoneNumber string `json:"phone_number"`
-	Bio         string `json:"bio"`
-	Country     string `json:"country"`
-	City        string `json:"city"`
-	State       string `json:"state"`
-	ZipCode     string `json:"zip_code"`
-	ProfilePic  string `json:"profile_pic"`
+	UserFields
+}
+
+type UpdateUserInput struct {
+	UserFields
 }
 
 type CreateUserResult struct {
@@ -63,17 +71,17 @@ type CreateUserResult struct {
 }
 
 func (s *UserService) CreateUser(ctx context.Context, input CreateUserInput) (*CreateUserResult, error) {
-	if errs := s.validator.ValidatePassword(input.Password); len(errs) > 0 {
+	if errs := s.validator.ValidatePassword(*input.Password); len(errs) > 0 {
 		return nil, &e.ValidationError{Errors: errs}
 	}
 
-	existingUser, err := s.userRepo.FindByEmail(ctx, input.Email)
+	existingUser, err := s.userRepo.FindByEmail(ctx, *input.Email)
 	if err == nil && existingUser != nil {
-		return nil, fmt.Errorf("User with email %s already exists", input.Email)
+		return nil, fmt.Errorf("User with email %s already exists", *input.Email)
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword(
-		[]byte(input.Password+passwordSalt),
+		[]byte(*input.Password+passwordSalt),
 		bcrypt.DefaultCost,
 	)
 	if err != nil {
@@ -81,20 +89,20 @@ func (s *UserService) CreateUser(ctx context.Context, input CreateUserInput) (*C
 	}
 
 	user := &models.User{
-		Email:        strings.ToLower(strings.TrimSpace(input.Email)),
+		Email:        strings.ToLower(strings.TrimSpace(*input.Email)),
 		PasswordHash: string(hashedPassword),
 	}
 
 	profile := &models.Profile{
-		FirstName:   input.FirstName,
-		LastName:    input.LastName,
-		Bio:         input.Bio,
-		Country:     input.Country,
-		City:        input.City,
-		PhoneNumber: input.PhoneNumber,
-		State:       input.State,
-		ZipCode:     input.ZipCode,
-		ProfilePic:  input.ProfilePic,
+		FirstName:   *input.FirstName,
+		LastName:    *input.LastName,
+		Bio:         *input.Bio,
+		Country:     *input.Country,
+		City:        *input.City,
+		PhoneNumber: *input.PhoneNumber,
+		State:       *input.State,
+		ZipCode:     *input.ZipCode,
+		ProfilePic:  *input.ProfilePic,
 	}
 
 	if errs := s.validator.ValidateStruct(user); len(errs) > 0 {
@@ -114,6 +122,6 @@ func (s *UserService) CreateUser(ctx context.Context, input CreateUserInput) (*C
 	}, nil
 }
 
-func (s *UserService) DeleteUser(ctx context.Context, userId int64) () {
-	
+func (s *UserService) DeleteUser(ctx context.Context, userId int64) {
+
 }
