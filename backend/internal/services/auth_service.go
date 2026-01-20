@@ -13,9 +13,9 @@ import (
 )
 
 type AuthService struct {
-	UserRepo    *repositories.UserRepository
-	UserService *UserService
-	JWTConfig   *config.JWTConfig
+	userRepo    *repositories.UserRepository
+	userService *UserService
+	jwtConfig   *config.JWTConfig
 }
 
 func NewAuthService(
@@ -24,9 +24,9 @@ func NewAuthService(
 	jwtConfig *config.JWTConfig,
 ) *AuthService {
 	return &AuthService{
-		UserRepo:    userRepo,
-		UserService: userService,
-		JWTConfig:   jwtConfig,
+		userRepo,
+		userService,
+		jwtConfig,
 	}
 }
 
@@ -50,7 +50,7 @@ type UserResponse struct {
 }
 
 func (s *AuthService) Login(ctx context.Context, input LoginInput) (*AuthResponse, error) {
-	user, err := s.UserRepo.FindByEmail(ctx, input.Email)
+	user, err := s.userRepo.FindByEmail(ctx, input.Email)
 	if err != nil {
 		return nil, fmt.Errorf("No account associated with email")
 	}
@@ -62,7 +62,7 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (*AuthRespons
 		return nil, fmt.Errorf("Wrong password")
 	}
 
-	profile, err := s.UserRepo.GetProfileByUserId(ctx, user.ID)
+	profile, err := s.userRepo.GetProfileByUserId(ctx, user.ID)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to retrieve userProfile")
 	}
@@ -91,7 +91,7 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (*AuthRespons
 }
 
 func (s *AuthService) Register(ctx context.Context, input CreateUserInput) (*AuthResponse, error) {
-	result, err := s.UserService.CreateUser(ctx, input)
+	result, err := s.userService.CreateUser(ctx, input)
 	if err != nil {
 		return nil, err
 	}
@@ -119,6 +119,38 @@ func (s *AuthService) Register(ctx context.Context, input CreateUserInput) (*Aut
 	}, nil
 }
 
+func (s *AuthService) Logout(ctx context.Context) error {
+	return nil
+}
+
+func(s *AuthService) DeleteCurrentUser(ctx context.Context, userId int64) error {
+	err := s.userRepo.DeleteUser(ctx, userId)
+	if err != nil {
+		return fmt.Errorf("Failed to delete user %w", err)
+	}
+	return nil
+}
+
+func (s *AuthService) GetCurrentUser(ctx context.Context, userId int64) (*UserResponse, error) {
+	user, err := s.userRepo.FindById(ctx, userId)
+	if err != nil {
+		return nil, fmt.Errorf("User not found")
+	}
+
+	profile, err := s.userRepo.GetProfileByUserId(ctx, userId)
+	if err != nil {
+		return nil, fmt.Errorf("Profile not found")
+	}
+
+	return &UserResponse{
+		ID: user.ID,
+		Email: user.Email,
+		FirstName: profile.FirstName,
+		LastName: profile.LastName,
+		ProfilePic: profile.ProfilePic,
+	}, nil
+}
+
 func (s *AuthService) RefreshToken(ctx context.Context, refreshTokenString string) (*AuthResponse, error) {
 	token, err := jwt.ParseWithClaims(
 		refreshTokenString,
@@ -127,7 +159,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshTokenString strin
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("Unexpected signing method")
 			}
-			return []byte(s.JWTConfig.RefreshSecret), nil
+			return []byte(s.jwtConfig.RefreshSecret), nil
 		},
 	)
 
@@ -140,12 +172,12 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshTokenString strin
 		return nil, fmt.Errorf("Invalid refresh token")
 	}
 
-	user, err := s.UserRepo.FindById(ctx, claims.UserID)
+	user, err := s.userRepo.FindById(ctx, claims.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("User not found")
 	}
 
-	profile, err := s.UserRepo.GetProfileByUserId(ctx, user.ID)
+	profile, err := s.userRepo.GetProfileByUserId(ctx, user.ID)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to retrieve user profile")
 	}
@@ -176,7 +208,7 @@ func (s *AuthService) ValidateAccessToken(tokenString string) (*models.AccessTok
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("Unexpected signing method")
 			}
-			return []byte(s.JWTConfig.AccessSecret), nil
+			return []byte(s.jwtConfig.AccessSecret), nil
 		},
 	)
 
@@ -197,26 +229,26 @@ func (s *AuthService) generateAccessToken(user *models.User) (string, error) {
 		UserID: user.ID,
 		Email:  user.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.JWTConfig.AccessExpiresIn)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.jwtConfig.AccessExpiresIn)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(s.JWTConfig.AccessSecret))
+	return token.SignedString([]byte(s.jwtConfig.AccessSecret))
 }
 
 func (s *AuthService) generateRefreshToken(user *models.User) (string, error) {
 	claims := &models.RefreshTokenClaims{
 		UserID: user.ID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.JWTConfig.RefreshExpiresIn)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.jwtConfig.RefreshExpiresIn)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(s.JWTConfig.RefreshSecret))
+	return token.SignedString([]byte(s.jwtConfig.RefreshSecret))
 }

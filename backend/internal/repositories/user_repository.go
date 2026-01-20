@@ -63,3 +63,13 @@ func (r *UserRepository) GetProfileByUserId(ctx context.Context, userID int64) (
 		Scan(ctx)
 	return profile, err
 }
+
+func (r *UserRepository) DeleteUser(ctx context.Context, userID int64) error {
+	user, err := r.FindById(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	r.db.NewDelete().Model(user).Where("id = ?", userID).Exec(ctx)
+	return nil
+}

@@ -113,3 +113,7 @@ func (s *UserService) CreateUser(ctx context.Context, input CreateUserInput) (*C
 		Profile: profile,
 	}, nil
 }
+
+func (s *UserService) DeleteUser(ctx context.Context, userId int64) () {
+	
+}

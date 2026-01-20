@@ -6,6 +6,7 @@ import (
 
 	e "github.com/promingy/yelp-clone/backend/internal/errors"
 	"github.com/promingy/yelp-clone/backend/internal/services"
+	"github.com/promingy/yelp-clone/backend/internal/utils"
 	"github.com/uptrace/bunrouter"
 )
 
@@ -26,12 +27,15 @@ type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+type SingleErrorRes map[string]string
+type MultiErrorRes map[string]map[string]string
+
 func (h *AuthHandler) Login(w http.ResponseWriter, req bunrouter.Request) error {
 	var input LoginRequest
 
 	if err := json.NewDecoder(req.Body).Decode(&input); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		return bunrouter.JSON(w, map[string]string{"error": "Invalid request body"})
+		return bunrouter.JSON(w, SingleErrorRes{"error": "Invalid request body"})
 	}
 	defer req.Body.Close()
 
@@ -41,7 +45,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, req bunrouter.Request) error 
 	})
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
-		return bunrouter.JSON(w, map[string]string{"error": err.Error()})
+		return bunrouter.JSON(w, SingleErrorRes{"error": err.Error()})
 	}
 
 	http.SetCookie(w, &http.Cookie{
@@ -72,7 +76,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, req bunrouter.Request) err
 
 	if err := json.NewDecoder(req.Body).Decode(&input); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		return bunrouter.JSON(w, map[string]string{"error": "Invalid request body"})
+		return bunrouter.JSON(w, SingleErrorRes{"error": "Invalid request body"})
 	}
 	defer req.Body.Close()
 
@@ -80,19 +84,21 @@ func (h *AuthHandler) Register(w http.ResponseWriter, req bunrouter.Request) err
 	if err != nil {
 		if validationErr, ok := err.(*e.ValidationError); ok {
 			w.WriteHeader(http.StatusBadRequest)
-			return bunrouter.JSON(w, map[string]map[string]string{
+			return bunrouter.JSON(w, MultiErrorRes{
 				"errors": validationErr.Errors,
 			})
 		}
 
 		w.WriteHeader(http.StatusBadRequest)
-		return bunrouter.JSON(w, map[string]string{"error": err.Error()})
+		return bunrouter.JSON(w, SingleErrorRes{"error": err.Error()})
 	}
 
 	return bunrouter.JSON(w, result)
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, req bunrouter.Request) error {
+	h.authService.Logout(req.Context())
+
 	http.SetCookie(w, &http.Cookie{
 		Name:   "access_token",
 		Path:   "/",
@@ -105,6 +111,24 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, req bunrouter.Request) error
 	})
 
 	return bunrouter.JSON(w, map[string]string{"message": "Successfully logged out"})
+}
+
+func (h *AuthHandler) DeleteCurrentUser(w http.ResponseWriter, req bunrouter.Request) error {
+	userID, ok := utils.GetUserID(req.Context())
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return bunrouter.JSON(w, SingleErrorRes{"error": "Unauthorized"})
+	}
+
+	err := h.authService.DeleteCurrentUser(req.Context(), userID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return bunrouter.JSON(w, SingleErrorRes{"error": "Failed to delete user"})
+	}
+
+	return bunrouter.JSON(w, map[string]string {
+		"message": "User successfully deleted",
+	})
 }
 
 func (h *AuthHandler) RefreshToken(w http.ResponseWriter, req bunrouter.Request) error {
@@ -143,27 +167,17 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, req bunrouter.Request)
 }
 
 func (h *AuthHandler) GetCurrentUser(w http.ResponseWriter, req bunrouter.Request) error {
-	userID := req.Context().Value("user_id").(int64)
-
-	user, err := h.authService.UserRepo.FindById(req.Context(), userID)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return bunrouter.JSON(w, map[string]string{"error": "User not found"})
+	userID, ok := utils.GetUserID(req.Context())
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return bunrouter.JSON(w, SingleErrorRes{"error": "Unauthorized"})
 	}
 
-	profile, err := h.authService.UserRepo.GetProfileByUserId(req.Context(), userID)
+	user, err := h.authService.GetCurrentUser(req.Context(), userID)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return bunrouter.JSON(w, map[string]string{"error": "User not found"})
+		w.WriteHeader(http.StatusInternalServerError)
+		return bunrouter.JSON(w, SingleErrorRes{"error": err.Error()})
 	}
 
-	return bunrouter.JSON(w, map[string]interface{}{
-		"User": services.UserResponse{
-			ID:         user.ID,
-			Email:      user.Email,
-			FirstName:  profile.FirstName,
-			LastName:   profile.LastName,
-			ProfilePic: profile.ProfilePic,
-		},
-	})
+	return bunrouter.JSON(w, user)
 }
