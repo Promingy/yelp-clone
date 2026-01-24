@@ -109,7 +109,13 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, req bunrouter.Request) error
 }
 
 func (h *AuthHandler) UpdateUser(w http.ResponseWriter, req bunrouter.Request) error {
-	
+	var input services.UpdateUserInput
+
+	if err := json.NewDecoder(req.Body).Decode(&input); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return bunrouter.JSON(w, e.NewSingleError("Invalid request body"))
+	}
+	return bunrouter.JSON(w, map[string]string{})
 }
 
 func (h *AuthHandler) DeleteCurrentUser(w http.ResponseWriter, req bunrouter.Request) error {
