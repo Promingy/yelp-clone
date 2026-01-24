@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/promingy/yelp-clone/backend/internal/models"
 	"github.com/uptrace/bun"
@@ -62,4 +63,33 @@ func (r *UserRepository) GetProfileByUserId(ctx context.Context, userID int64) (
 		Where("user_id = ?", userID).
 		Scan(ctx)
 	return profile, err
+}
+
+func (r *UserRepository) DeleteUser(ctx context.Context, userID int64) error {
+	user, err := r.FindById(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	profile, err := r.GetProfileByUserId(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	return r.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		if _, err := tx.NewDelete().
+			Model(user).
+			Where("id = ?", user.ID).
+			Exec(ctx); err != nil {
+			return fmt.Errorf("Failed to delete User: %w", err)
+		}
+		profile.UserID = user.ID
+		if _, err := tx.NewDelete().
+			Model(profile).
+			Where("id = ?", profile.ID).
+			Exec(ctx); err != nil {
+			return fmt.Errorf("Failed to delete profile: %w", err)
+		}
+		return nil
+	})
 }

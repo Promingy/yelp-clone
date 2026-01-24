@@ -44,17 +44,31 @@ func NewUserService(
 }
 
 type CreateUserInput struct {
-	FirstName   string `json:"first_name"`
-	LastName    string `json:"last_name"`
-	Email       string `json:"email"`
-	Password    string `json:"password"`
-	PhoneNumber string `json:"phone_number"`
-	Bio         string `json:"bio"`
-	Country     string `json:"country"`
-	City        string `json:"city"`
-	State       string `json:"state"`
-	ZipCode     string `json:"zip_code"`
-	ProfilePic  string `json:"profile_pic"`
+	FirstName   string `json:"first_name,omitempty"`
+	LastName    string `json:"last_name,omitempty"`
+	Email       string `json:"email,omitempty"`
+	Password    string `json:"password,omitempty"`
+	PhoneNumber string `json:"phone_number,omitempty"`
+	Bio         string `json:"bio,omitempty"`
+	Country     string `json:"country,omitempty"`
+	City        string `json:"city,omitempty"`
+	State       string `json:"state,omitempty"`
+	ZipCode     string `json:"zip_code,omitempty"`
+	ProfilePic  string `json:"profile_pic,omitempty"`
+}
+
+type UpdateUserInput struct {
+	FirstName   *string `json:"first_name,omitempty"`
+	LastName    *string `json:"last_name,omitempty"`
+	Email       *string `json:"email,omitempty"`
+	Password    *string `json:"password,omitempty"`
+	PhoneNumber *string `json:"phone_number,omitempty"`
+	Bio         *string `json:"bio,omitempty"`
+	Country     *string `json:"country,omitempty"`
+	City        *string `json:"city,omitempty"`
+	State       *string `json:"state,omitempty"`
+	ZipCode     *string `json:"zip_code,omitempty"`
+	ProfilePic  *string `json:"profile_pic,omitempty"`
 }
 
 type CreateUserResult struct {
@@ -112,4 +126,8 @@ func (s *UserService) CreateUser(ctx context.Context, input CreateUserInput) (*C
 		User:    user,
 		Profile: profile,
 	}, nil
+}
+
+func (s *UserService) DeleteUser(ctx context.Context, userId int64) {
+
 }
